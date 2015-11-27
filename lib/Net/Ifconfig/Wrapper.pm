@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.11';
+$VERSION = 0.12;
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -114,7 +114,7 @@ my $RunCmd = sub($$)
 	$Cmd =~ s{%Addr%}{$Addr}gsex;
 	$Cmd =~ s{%Mask%}{$Mask}gsex;
 	
-	my $saveLang = $ENV{'LANG'} || '';
+	my $saveLang = $ENV{'LANG'} || '';
 	$ENV{'LANG'} = 'C';
 	my @Output   = `$Cmd`;
 	$ENV{'LANG'} = $saveLang;
@@ -465,7 +465,8 @@ $Ifconfig{'list'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig -a',
                                    'function' => $Win32List,},
                     };
 
-$Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};$Ifconfig{'list'}{'darwin'}  = $Ifconfig{'list'}{'solaris'};
+$Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};
+$Ifconfig{'list'}{'darwin'}  = $Ifconfig{'list'}{'solaris'};
 $Ifconfig{'list'}{'cygwin'}  = $Ifconfig{'list'}{'MSWin32'};
 
 
@@ -686,7 +687,7 @@ $Ifconfig{'inet'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface% inet %A
 $Ifconfig{'inet'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'inet'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'inet'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
-$Ifconfig{'inet'}{'darwin'}  = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'inet'}{'darwin'}  = $Ifconfig{'inet'}{'solaris'};
                
 $Ifconfig{'up'} = $Ifconfig{'inet'};
 
@@ -696,7 +697,7 @@ $Ifconfig{'down'}{'solaris'} = {'ifconfig' => '/sbin/ifconfig %Iface% down',
 $Ifconfig{'down'}{'freebsd'} = $Ifconfig{'down'}{'solaris'};
 $Ifconfig{'down'}{'openbsd'} = $Ifconfig{'down'}{'solaris'};
 $Ifconfig{'down'}{'linux'}   = $Ifconfig{'down'}{'solaris'};
-$Ifconfig{'down'}{'darwin'}  = $Ifconfig{'down'}{'solaris'};
+$Ifconfig{'down'}{'darwin'}  = $Ifconfig{'down'}{'solaris'};
 
 $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%         inet %Addr% netmask %Mask% alias',
                                      'function' => $UpDown},
@@ -707,7 +708,7 @@ $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%      
                       };
 $Ifconfig{'+alias'}{'openbsd'} = $Ifconfig{'+alias'}{'freebsd'};
 $Ifconfig{'+alias'}{'linux'}   = $Ifconfig{'+alias'}{'solaris'};
-$Ifconfig{'+alias'}{'darwin'}  = $Ifconfig{'+alias'}{'freebsd'};
+$Ifconfig{'+alias'}{'darwin'}  = $Ifconfig{'+alias'}{'freebsd'};
 
 $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'}  = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
 $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'}  = $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'};
@@ -725,7 +726,7 @@ $Ifconfig{'-alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface% inet 
                       };
 $Ifconfig{'-alias'}{'openbsd'} = $Ifconfig{'-alias'}{'freebsd'};
 $Ifconfig{'-alias'}{'linux'}   = $Ifconfig{'-alias'}{'solaris'};
-$Ifconfig{'-alias'}{'darwin'} = $Ifconfig{'-alias'}{'freebsd'};
+$Ifconfig{'-alias'}{'darwin'} = $Ifconfig{'-alias'}{'freebsd'};
 
 $Ifconfig{'-alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% unplumb';
 
@@ -758,7 +759,7 @@ __END__
 =head1 NAME
 
 Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
-on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
+on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
 
 
 I<Version 0.11>
@@ -768,7 +769,7 @@ I<Version 0.11>
   #!/usr/local/bin/perl -w
   # uni-ifconfig.pl
   # The unified ifconfig command.
-  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, OS X, WinNT (from Win2K).
+  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, OS X, WinNT (from Win2K).
   # Note: due of Net::Ifconfig::Wrapper limitations 'inet' and 'down' commands
   # are not working on WinNT. +/-alias are working, of course.
   
@@ -872,7 +873,7 @@ I<Version 0.11>
 =head1 DESCRIPTION
 
 This module provides a unified way to configure the network interfaces
-on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K) systems.
+on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K) systems.
 
 I<B<Only C<inet> (IPv4) and C<ether> (MAC) addresses are supported at the moment>>
 
@@ -882,9 +883,9 @@ On Windows the functions from IpHlpAPI.DLL are called.
 For all supported Unixes C<Net::Ifconfig::Wrapper> expect C<ifconfig>
 command to be C</sbin/ifconfig>.
 
-Module was tested on FreeBSD 4.7,4.8,5.3 (Intel), RedHat 6.2,7.3,8.0 (Intel),
-Win2000 Pro (Intel), OpenBSD 3.1 (SPARC), Solaris 7 (SPARC),
-OS X 10.3 (aka Panther), OS X 10.4 (aka Tiger).
+Module was tested on FreeBSD 4.7,4.8,5.3 (Intel), RedHat 6.2,7.3,8.0 (Intel),
+Win2000 Pro (Intel), OpenBSD 3.1 (SPARC), Solaris 7 (SPARC),
+OS X 10.3 (aka Panther), OS X 10.4 (aka Tiger).
 
 I<In MSWin32 family only WinNT is supported. In WinNT family only Win2K or later is supported.>
 
@@ -941,10 +942,10 @@ C</sbin/ifconfig -A>
 
 C</sbin/ifconfig -a>
 
-=item OS X
-
-C</sbin/ifconfig -a>
-
+=item OS X
+
+C</sbin/ifconfig -a>
+
 =item MSWin32
 
 C<GetAdaptersInfo> function from C<IpHlpAPI.DLL>
@@ -996,10 +997,10 @@ C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
 
 C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
 
-=item OS X
-
-C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
-
+=item OS X
+
+C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
+
 =item MSWin32:
 
 nothing :(
@@ -1045,10 +1046,10 @@ C</sbin/ifconfig %Iface% down>
 
 C</sbin/ifconfig %Iface% down>
 
-=item OS X
-
-C</sbin/ifconfig %Iface% down>
-
+=item OS X
+
+C</sbin/ifconfig %Iface% down>
+
 =item MSWin32
 
 nothing :(
@@ -1092,10 +1093,10 @@ C</sbin/ifconfig %Iface%         inet %Addr% netmask  %Mask% alias>
 
 C</sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask  %Mask% up>
 
-=item OS X
-
-C</sbin/ifconfig %Iface%         inet %Addr% netmask  %Mask% alias>
-
+=item OS X
+
+C</sbin/ifconfig %Iface%         inet %Addr% netmask  %Mask% alias>
+
 =item MSWin32
 
 C<AddIPAddress> function from C<IpHlpAPI.DLL>
@@ -1140,10 +1141,10 @@ C</sbin/ifconfig %Iface% inet %Addr% -alias>
 
 C</sbin/ifconfig %Iface%:%Logic% down>
 
-=item OS X
-
-C</sbin/ifconfig %Iface% inet %Addr% -alias>
-
+=item OS X
+
+C</sbin/ifconfig %Iface% inet %Addr% -alias>
+
 =item MSWin32
 
 C<DeleteIPAddress> function from C<IpHlpAPI.DLL>
