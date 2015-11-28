@@ -3,6 +3,8 @@ package Net::Ifconfig::Wrapper;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS @EXPORT_FAIL);
 
+$VERSION = 0.13;
+
 #$^W++;
 
 require Exporter;
@@ -20,8 +22,6 @@ foreach (keys(%EXPORT_TAGS))
 
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-$VERSION = 0.12;
 
 my $DEBUG = 0;
 
@@ -783,8 +783,8 @@ sub Ifconfig
 	};
 
 1;
+
 __END__
-# Below is stub documentation for your module. You better edit it!
 
 =head1 NAME
 
@@ -820,7 +820,7 @@ In the Windows NT family, only Windows 2000 or later is supported.>
 
 =item C<Ifconfig(I<Command>, I<Interface>, I<Address>, I<Netmask>);>
 
-The first and the last method of the  C<Net::Ifconfig::Wrapper> module. Do all the job.
+The one and only method of the C<Net::Ifconfig::Wrapper> module.  Does all the jobs.
 The particular action is described by the C<$Command> parameter.
 
 C<$Command> could be:
@@ -829,8 +829,8 @@ C<$Command> could be:
 
 =item 'list'
 
-C<Ifconfig('list', '', '', '')> will return the reference to the hash
-contains the information about interfaces.
+C<Ifconfig('list', '', '', '')> will return a reference to a hash
+containing information about interfaces.
 
 The structure of this hash is the following:
 
@@ -847,7 +847,7 @@ The structure of this hash is the following:
 
 I<Interface>, I<Address>, I<Netmask> parameters are ignored.
 
-The following programs are called:
+The following shows what program is called for each OS:
 
 =over 12
 
@@ -877,22 +877,22 @@ C<GetAdaptersInfo> function from C<IpHlpAPI.DLL>
 
 =back
 
-Limitations:
+Known Limitations:
 
 OpenBSD: C</sbin/ifconfig -A> command is not returning information about MAC addresses
 so we are trying to get it from C<'/usr/sbin/arp -a'> command (first I<C<'static'>> entry).
 If no one present the I<C<'ff:ff:ff:ff:ff'>> address is returned.
 
-MSWin32: C<GetAdaptersInfo> function is not returning information about interface
-which have address C<127.0.0.1> binded
-so  C<Net::Ifconfig::Wrapper> have no ability to display it.
+MSWin32: C<GetAdaptersInfo> function is not returning information about the interface
+which has address C<127.0.0.1> bound to it,
+so we have no way to return it.
 
-Not limitation but little problem: MSWin32 interface names are not human-readable,
-they looks like C<{843C2077-30EC-4C56-A401-658BB1E42BC7}> (on Win2K at least).
+Not a limitation, but a small problem: in MSWin32, interface names are not human-readable,
+they look like C<{843C2077-30EC-4C56-A401-658BB1E42BC7}> (on Win2K at least).
 
 =item 'inet'
 
-This function is used to set IPv4 address on interface. It have to be called as
+This function is used to set IPv4 address on interface.  It is called as
 
   Ifconfig('inet', $IfaceName, $Addr, $Mask);
 
@@ -902,7 +902,7 @@ I<C<$Addr>> is an IPv4 address in the C<AAA.AAA.AAA.AAA> notation
 
 I<C<$Mask>> is an IPv4 subnet mask in the C<MMM.MMM.MMM.MMM> notation
 
-The following actual C<ifconfig> programs are called
+In order to accomplish this, the following actual C<ifconfig> programs are called:
 
 =over 12
 
@@ -932,10 +932,10 @@ nothing :(
 
 =back
 
-Limitations:
+Known Limitations:
 
-MSWin32: I did not find the relaible way to recognize the "main" address on the Win32
-network interface, so I have disabled this functionality. If you know the way please let me know.
+MSWin32: I did not find a reliable way to recognize the "main" address on the Win32
+network interface, so I have disabled this functionality.  If you know how, please let me know.
 
 =item 'up'
 
@@ -943,15 +943,15 @@ Just a synonym for C<'inet'>
 
 =item 'down'
 
-This function is used to bring specified interface down. It have to be called as
+This function is used to bring specified interface down.  It is called as
 
   Ifconfig('inet', $IfaceName, '', '');
 
 I<C<$IfaceName>> is an interface name as displayed by C<'list'> command
 
-I<Address> and I<Netmask> are ignored.
+Last two arguments are ignored.
 
-The following actual C<ifconfig> programs are called
+In order to accomplish this, the following programs are called:
 
 =over 12
 
@@ -977,12 +977,11 @@ C</sbin/ifconfig %Iface% down>
 
 =item MSWin32
 
-nothing :(
+Sorry, this function is not possible.
 
 =back
 
-
-Limitations:
+Known Limitations:
 
 MSWin32: I did not find the way to implement the C<'up'> command so I did not implement C<'down'>.
 
@@ -998,7 +997,7 @@ I<C<$Addr>> is an IPv4 address in the C<AAA.AAA.AAA.AAA> notation
 
 I<C<$Mask>> is an IPv4 subnet mask in the C<MMM.MMM.MMM.MMM> notation
 
-The following actual C<ifconfig> programs are called
+In order to accomplish this, the following C<ifconfig> programs are called:
 
 =over 12
 
@@ -1028,7 +1027,7 @@ C<AddIPAddress> function from C<IpHlpAPI.DLL>
 
 =back
 
-I<First available logic interface is taken automaticaly for Solaris and Linux>
+I<First available logic interface is taken automatically for Solaris and Linux>
 
 =item 'alias'
 
@@ -1040,13 +1039,13 @@ This function is used to remove IPv4 alias address from interface. It have to be
 
   Ifconfig('-alias', $IfaceName, $Addr, '');
 
-I<C<$IfaceName>> is an interface name as displayed by C<'list'> command
+I<C<$IfaceName>> is an interface name as displayed by C<'list'> command.
 
-I<C<$Addr>> is an IPv4 address in the C<AAA.AAA.AAA.AAA> notation
+I<C<$Addr>> is an IPv4 address in the C<AAA.AAA.AAA.AAA> notation.
 
-I<Netmask>> parameter is ignored
+Last argument is ignored if present.
 
-The following actual C<ifconfig> programs are called
+In order to accomplish this, the following C<ifconfig> programs are called:
 
 =over 12
 
@@ -1076,16 +1075,16 @@ C<DeleteIPAddress> function from C<IpHlpAPI.DLL>
 
 =back
 
-I<Appropriate logic interface is obtained automaticaly for Solaris and Linux>
+I<Appropriate logic interface is obtained automatically for Solaris and Linux>
 
 =back
 
-On success C<Ifconfig(...)> returns the defined value.
-Actually, it is a reference to the array contains the output
+On success, the C<Ifconfig(...)> function returns the defined value.
+Actually, it is a reference to the array containing the output
 of the actual I<C<ifconfig>> program called.
 
-In case of troubles C<Ifconfig(...)> returns C<'undef'> value,
-C<$@> variable contains the error message.
+In case of error, C<Ifconfig(...)> returns C<'undef'> value,
+and the C<$@> variable contains the error message.
 
 =back
 
@@ -1096,6 +1095,7 @@ None by default.
 =head1 AUTHOR
 
 Daniel Podolsky, E<lt>tpaba@cpan.orgE<gt>
+As of 2015-11, maintained by Martin Thurn E<lt>mthurn@cpan.orgE<gt>
 
 =head1 SEE ALSO
 
