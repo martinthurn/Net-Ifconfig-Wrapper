@@ -23,6 +23,8 @@ $EXPORT_TAGS{'all'}
 
 $VERSION = 0.12;
 
+my $DEBUG = 0;
+
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
 
@@ -125,34 +127,37 @@ my $RunCmd = sub($$)
 	};
 
 my $SolarisList = sub($$$$)
+{
+    $Inet2Logic = undef;
+    $Logic2Inet = undef;
+    
+    my $Output = &{$RunCmd}('list', '', '', '', '')
+	or return;
+    
+    $Inet2Logic = {};
+    $Logic2Inet = {};
+
+    my $Iface = undef;
+    my $Logic = undef;
+    my $LogUp = undef;
+    my $Info  = {};
+    foreach (@{$Output})
+    {
+	if (
+	    ($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+\,)*(up)?(?:\,\w+)*\>.*\n?\Z/io)
+	    ||
+	    ($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+(?:\,\w+)*)*\>.*\n?\Z/io)
+	    )
 	{
-        $Inet2Logic = undef;
-        $Logic2Inet = undef;
-
-        my $Output = &{$RunCmd}('list', '', '', '', '')
-        	or return;
-
-        $Inet2Logic = {};
-        $Logic2Inet = {};
-
-        my $Iface = undef;
-        my $Logic = undef;
-        my $LogUp = undef;
-        my $Info  = {};
-	foreach (@{$Output})
-		{
-		if    (($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+\,)*(up)?(?:\,\w+)*\>.*\n?\Z/io) ||
-		       ($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+(?:\,\w+)*)*\>.*\n?\Z/io))
-			{
-			$Iface = $1;
-			$Logic = defined($2) ? $2 : '';
-			$LogUp = 1 && $3;
-			#$Info->{$Iface}{'status'} = ($Info->{$Iface}{'status'} || $LogUp) ? 1 : 0;
-			$Info->{$Iface}{'status'} = $Info->{$Iface}{'status'} || $LogUp;
-			}
-		elsif (!$Iface)
-			{
-			next;
+	    $Iface = $1;
+	    $Logic = defined($2) ? $2 : '';
+	    $LogUp = 1 && $3;
+	    #$Info->{$Iface}{'status'} = ($Info->{$Iface}{'status'} || $LogUp) ? 1 : 0;
+	    $Info->{$Iface}{'status'} = $Info->{$Iface}{'status'} || $LogUp;
+	}
+	elsif (!$Iface)
+	{
+	    next;
 			}
 		elsif ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(?:0x)?([a-f\d]{8})(?:\s.*)?\n?\Z/io)
 			{
@@ -182,6 +187,7 @@ my $SolarisList = sub($$$$)
 
 my $LinuxList = sub($$$$)
 	{
+	  # warn " DDD start sub LinuxList...\n";
         $Inet2Logic = undef;
         $Logic2Inet = undef;
 
@@ -195,28 +201,52 @@ my $LinuxList = sub($$$$)
         my $Logic = undef;
         my $Info  = {};
 	foreach (@{$Output})
-		{
-		if    ($_ =~ m/\A([a-z]+(?:\d+)?)(?:\:(\d+))?\s+link\s+encap\:(?:ethernet\s+hwaddr\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
+	{
+	  $DEBUG && warn " DDD looking at line of Output=$_";
+	    if (
+		($_ =~ m/\A([a-z0-9]+)(?:\:(\d+))?\s+link\s+encap\:(?:ethernet\s+hwaddr\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
+		)
+	    {
+		$Iface = $1;
+		$Logic = defined($2) ? $2 : '';
+		defined($3)
+		    and $Info->{$Iface}{'ether'} = $3;
+		$Info->{$Iface}{'status'} = 0;
+	    }
+	    elsif (
+		($_ =~ m/\A([a-z0-9]+)\:\s+flags=\d+<(\w+(?:,\w+)*)*>.*\n?\Z/io)
+		)
+	    {
+		$Iface = $1;
+		my $sFlags = $2;
+		$DEBUG && warn " DDD   matched 'flags' line, Iface=$Iface, sFlags=$sFlags\n";
+		$Info->{$Iface}{'status'} = 1 if ($sFlags =~ m/\bUP\b/);
+	    }
+	    elsif (!$Iface)
+	    {
+		next;
+	    }
+	    elsif (
+		($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
+		||
+		($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s.*)?\n?\Z/io)
+		)
 			{
-			$Iface = $1;
-			$Logic = defined($2) ? $2 : '';
-			defined($3)
-				and $Info->{$Iface}{'ether'} = $3;
-			$Info->{$Iface}{'status'} = 0;
+			    my $sIP = $1;
+			    my $sNetmask = $2;
+			    $DEBUG && warn " DDD   matched 'netmask' line, sIP=$sIP, sNetmask=$sNetmask\n";
+			$Info->{$Iface}{'inet'}{$sIP} = $sNetmask;
+			$Inet2Logic->{$Iface}{$sIP} = $Logic;
+			$Logic2Inet->{$Iface}{$Logic} = $sIP;
 			}
-		elsif (!$Iface)
+		elsif ($_ =~ m/\A\s+ether\s+([a-f0-9]{1,2}(?:\:[a-f0-9]{1,2}){5})(?:\s|\n|\Z)/io)
 			{
-			next;
-			}
-		elsif ($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
-			{
-			$Info->{$Iface}{'inet'}{$1} = $2;
-			$Inet2Logic->{$Iface}{$1} = $Logic;
-			$Logic2Inet->{$Iface}{$Logic} = $1;
+			$Info->{$Iface}{'ether'} = $1;
 			}
 		elsif ($_ =~ m/\A\s+up(?:\s+[^\s]+)*\s*\n?\Z/io)
 			{
-			$Info->{$Iface}{'status'} = 1;
+			  $DEBUG && warn " DDD   matched 'up' line\n";
+			  $Info->{$Iface}{'status'} = 1;
 			};
 		};
 
@@ -761,133 +791,28 @@ __END__
 Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
 
-
-I<Version 0.11>
-
 =head1 SYNOPSIS
 
-  #!/usr/local/bin/perl -w
-  # uni-ifconfig.pl
-  # The unified ifconfig command.
-  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, OS X, WinNT (from Win2K).
-  # Note: due of Net::Ifconfig::Wrapper limitations 'inet' and 'down' commands
-  # are not working on WinNT. +/-alias are working, of course.
-  
-  use strict;
-  
   use Net::Ifconfig::Wrapper;
-  
-  my $Usage = << 'EndOfText';
-  uni-ifconfig.pl         # Print this notice
-  uni-ifconfig.pl -a      # Print info about all interfaces
-  uni-ifconfig.pl <iface> # Print info obout specified interface
-  uni-ifconfig.pl <iface> down
-                          # Bring specified interface down
-  uni-ifconfig.pl <iface> inet <AAA.AAA.AAA.AAA> mask <MMM.MMM.MMM.MMM>
-                          # Set the specified address on the specified interface
-                          # and bring this interface up
-  uni-ifconfig.pl <iface> inet <AAA.AAA.AAA.AAA> mask <MMM.MMM.MMM.MMM> [+]alias
-                          # Set the specified alias address
-                          # on the specified interface
-  uni-ifconfig.pl <iface> inet <AAA.AAA.AAA.AAA> [mask <MMM.MMM.MMM.MMM>] -alias
-                          # Remove specified alias address
-                          # from the specified interface
-  EndOfText
-  
-  my $Info = Net::Ifconfig::Wrapper::Ifconfig('list', '', '', '')
-  	or die $@;
-  
-  scalar(keys(%{$Info}))
-  	or die "No one interface found. Something wrong?\n";
-  
-  if (!scalar(@ARGV))
-  	{
-  	print $Usage;
-  	exit 0;
-  	}
-  
-  if ($ARGV[0] eq '-a')
-  	{
-  	defined($ARGV[1])
-  		and die $Usage;
-  	foreach (sort(keys(%{$Info})))
-  		{ print IfaceInfo($Info, $_); };
-  	exit 0;
-  	};
-  
-  $Info->{$ARGV[0]}
-  	or die "Interface '$ARGV[0]' is unknown\n";
-  
-  if    (!defined($ARGV[1]))
-  	{
-  	print IfaceInfo($Info, $ARGV[0]);
-  	exit 0;
-  	}
-  
-  my $CmdLine = join(' ', @ARGV);
-  my $Result = undef;
-  
-  if    ($CmdLine =~ m/\A\s*([\w\{\}\-]+)\s+down\s*\Z/i)
-  	{
-  	$Result = Net::Ifconfig::Wrapper::Ifconfig('down', $1, '', '');
-  	}
-  elsif ($CmdLine =~ m/\A\s*([\w\{\}\-]+)\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+mask\s+(\d{1,3}(?:\.\d{1,3}){3})\s*\Z/i)
-  	{
-  	$Result = Net::Ifconfig::Wrapper::Ifconfig('inet', $1, $2, $3);
-  	}
-  elsif ($CmdLine =~ m/\A\s*([\w\{\}\-]+)\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+mask\s+(\d{1,3}(?:\.\d{1,3}){3})\s+\+?alias\s*\Z/i)
-  	{
-  	$Result = Net::Ifconfig::Wrapper::Ifconfig('+alias', $1, $2, $3);
-  	}
-  elsif ($CmdLine =~ m/\A\s*([\w\{\}\-]+)\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(:?mask\s+(\d{1,3}(?:\.\d{1,3}){3})\s+)?\-alias\s*\Z/i)
-  	{
-  	$Result = Net::Ifconfig::Wrapper::Ifconfig('-alias', $1, $2, '');
-  	}
-  else
-  	{ die $Usage; };
-  
-  $Result
-  	or die $@;
-  
-  exit 0;
-  
-  sub IfaceInfo
-  	{
-  	my ($Info, $Iface) = @_;
-  
-  	my $Res = "$Iface:\t".($Info->{$Iface}{'status'} ? 'UP' : 'DOWN')."\n";
-  
-  	while (my ($Addr, $Mask) = each(%{$Info->{$Iface}{'inet'}}))
-  		{ $Res .= sprintf("\tinet %-15s mask $Mask\n", $Addr); };
-  	
-  	$Info->{$Iface}{'ether'}
-  		and $Res .= "\tether ".$Info->{$Iface}{'ether'}."\n";
-  
-  	$Info->{$Iface}{'descr'}
-  		and $Res .= "\tdescr '".$Info->{$Iface}{'descr'}."'\n";
-  	
-  	return $Res;
-  	};
-
+  my $rhInfo = Net::Ifconfig::Wrapper::Ifconfig('list');
 
 =head1 DESCRIPTION
 
 This module provides a unified way to configure the network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K) systems.
 
-I<B<Only C<inet> (IPv4) and C<ether> (MAC) addresses are supported at the moment>>
+I<B<Only C<inet> (IPv4) and C<ether> (MAC) addresses are supported at this time>>
 
-On Unixes this module calls the system C<ifconfig> command to perform the actions.
-On Windows the functions from IpHlpAPI.DLL are called.
+On Unix, this module calls the system C<ifconfig> command to gather the information.
+On Windows, the functions from IpHlpAPI.DLL are called.
 
-For all supported Unixes C<Net::Ifconfig::Wrapper> expect C<ifconfig>
+For all supported Unixes, C<Net::Ifconfig::Wrapper> expects the C<ifconfig>
 command to be C</sbin/ifconfig>.
 
-Module was tested on FreeBSD 4.7,4.8,5.3 (Intel), RedHat 6.2,7.3,8.0 (Intel),
-Win2000 Pro (Intel), OpenBSD 3.1 (SPARC), Solaris 7 (SPARC),
-OS X 10.3 (aka Panther), OS X 10.4 (aka Tiger).
+See the top-level README file for a list of tested OSes.
 
-I<In MSWin32 family only WinNT is supported. In WinNT family only Win2K or later is supported.>
+I<On the MSWin32 family, only Windows NT is supported.  
+In the Windows NT family, only Windows 2000 or later is supported.>
 
 =head1 The Net::Ifconfig::Wrapper methods
 
