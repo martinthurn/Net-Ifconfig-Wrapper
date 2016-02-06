@@ -3,14 +3,14 @@ package Net::Ifconfig::Wrapper;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS @EXPORT_FAIL);
 
-$VERSION = 0.13;
+$VERSION = 0.14;
 
 #$^W++;
 
 require Exporter;
 
 @ISA = qw(Exporter);
-# Items to export into callers namespace by default. Note: do not export
+# Items to export into caller's namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw();
@@ -159,7 +159,11 @@ my $SolarisList = sub($$$$)
 	{
 	    next;
 			}
-		elsif ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(?:0x)?([a-f\d]{8})(?:\s.*)?\n?\Z/io)
+		elsif (
+             ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(?:0x)?([a-f\d]{8})(?:\s.*)?\n?\Z/io)
+             ||
+             0
+            )
 			{
 			$LogUp
 				and $Info->{$Iface}{'inet'}{$1} = $Hex2Mask{$2};
@@ -204,8 +208,11 @@ my $LinuxList = sub($$$$)
 	{
 	  $DEBUG && warn " DDD looking at line of Output=$_";
 	    if (
-		($_ =~ m/\A([a-z0-9]+)(?:\:(\d+))?\s+link\s+encap\:(?:ethernet\s+hwaddr\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
-		)
+           ($_ =~ m/\A([a-z0-9]+)(?:\:(\d+))?\s+link\s+encap\:(?:ethernet\s+hwaddr\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
+           ||
+           # German locale de_DE.UTF-8
+           ($_ =~ m/\A([a-z0-9]+)(?:\:(\d+))?\s+Link\s+encap\:(?:Ethernet\s+Hardware\s+Adresse\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
+          )
 	    {
 		$Iface = $1;
 		$Logic = defined($2) ? $2 : '';
@@ -227,10 +234,13 @@ my $LinuxList = sub($$$$)
 		next;
 	    }
 	    elsif (
-		($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
-		||
-		($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s.*)?\n?\Z/io)
-		)
+              ($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
+              ||
+              ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s.*)?\n?\Z/io)
+              ||
+              # German locale de_DE.UTF-8
+              ($_ =~ m/\A\s+inet\s+Adresse\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?Maske\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
+             )
 			{
 			    my $sIP = $1;
 			    my $sNetmask = $2;
@@ -485,11 +495,11 @@ my $Win32List = sub($$$$)
 
 
 
-$Ifconfig{'list'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig -a',
+$Ifconfig{'list'} = {'solaris' => {'ifconfig' => 'LC_ALL=C /sbin/ifconfig -a',
                                    'function' => $SolarisList},
-                     'openbsd' => {'ifconfig' => '/sbin/ifconfig -A',
+                     'openbsd' => {'ifconfig' => 'LC_ALL=C /sbin/ifconfig -A',
                                    'function' => $SolarisList},
-                     'linux'   => {'ifconfig' => '/sbin/ifconfig -a',
+                     'linux'   => {'ifconfig' => 'LC_ALL=C /sbin/ifconfig -a',
                                    'function' => $LinuxList},
                      'MSWin32' => {'ifconfig' => '',
                                    'function' => $Win32List,},
