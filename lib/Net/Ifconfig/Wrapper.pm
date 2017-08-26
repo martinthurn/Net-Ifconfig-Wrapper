@@ -232,8 +232,10 @@ my $LinuxList = sub($$$$)
       next;
       }
     elsif (
+           # RHEL 6 et alia:
            ($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
            ||
+           # RHEL 7 et alia:
            ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s.*)?\n?\Z/io)
            ||
            # German locale de_DE.UTF-8
@@ -330,7 +332,7 @@ $UnpackStr = sub($$)
     { $UpStr .= $StructUpStr; };
   
   return $UpStr;
-  }; $Unpackstr
+  }; # $Unpackstr
 
 
 my $ShiftStruct = undef;
@@ -524,7 +526,7 @@ my $UpDown = sub($$$$)
   $Logic2Inet = undef;
   
   $Output ? return $Output : return;        
-  }; $UpDown
+  }; # $UpDown
 
 my $UpDownNewLog = sub($$$$)
   {
