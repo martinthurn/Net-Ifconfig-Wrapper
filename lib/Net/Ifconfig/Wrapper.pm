@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS @EXPORT_FAIL);
 
-$VERSION = 0.15;
+$VERSION = 0.16;
 
 require Exporter;
 
@@ -263,11 +263,15 @@ my $LinuxList = sub($$$$)
   return $Info;
   }; # LinuxList
 
+# 64-bit Windows support added by Laurent Aml: use 'Q' for pointers,
+# and align to 8 bytes.
+my ($LQ, @pad) = (length(pack('P')) == 4) ? ('L') : ('Q', '_pad' => 'L');
 my $st_IP_ADDR_STRING =
-	['Next'      => 'L',   #struct _IP_ADDR_STRING*
+	['Next'      => $LQ,   #struct _IP_ADDR_STRING*
 	 'IpAddress' => 'a16', #IP_ADDRESS_STRING
 	 'IpMask'    => 'a16', #IP_MASK_STRING
-	 'Context'   => 'L'    #DWORD
+	 'Context'   => 'L',   #DWORD
+         @pad,
 	];
 
 my $MAX_ADAPTER_NAME_LENGTH        = 256;
@@ -275,7 +279,7 @@ my $MAX_ADAPTER_DESCRIPTION_LENGTH = 128;
 my $MAX_ADAPTER_ADDRESS_LENGTH     =   8;
 
 my $st_IP_ADAPTER_INFO =
-	['Next'                => 'L',                                     #struct _IP_ADAPTER_INFO*
+	['Next'                => $LQ,                                     #struct _IP_ADAPTER_INFO*
 	 'ComboIndex'          => 'L',                                     #DWORD
 	 'AdapterName'         => 'a'.($MAX_ADAPTER_NAME_LENGTH+4),        #char[MAX_ADAPTER_NAME_LENGTH + 4]
 	 'Description'         => 'a'.($MAX_ADAPTER_DESCRIPTION_LENGTH+4), #char[MAX_ADAPTER_DESCRIPTION_LENGTH + 4]
@@ -284,15 +288,17 @@ my $st_IP_ADAPTER_INFO =
 	 'Index'               => 'L',                                     #DWORD
 	 'Type'                => 'L',                                     #UINT
 	 'DhcpEnabled'         => 'L',                                     #UINT
-	 'CurrentIpAddress'    => 'L',                                     #PIP_ADDR_STRING
+         @pad,
+	 'CurrentIpAddress'    => $LQ,                                     #PIP_ADDR_STRING
 	 'IpAddressList'       => $st_IP_ADDR_STRING,                      #IP_ADDR_STRING
 	 'GatewayList'         => $st_IP_ADDR_STRING,                      #IP_ADDR_STRING 
 	 'DhcpServer'          => $st_IP_ADDR_STRING,                      #IP_ADDR_STRING
 	 'HaveWins'            => 'L',                                     #BOOL
+         @pad,
 	 'PrimaryWinsServer'   => $st_IP_ADDR_STRING,                      #IP_ADDR_STRING
 	 'SecondaryWinsServer' => $st_IP_ADDR_STRING,                      #IP_ADDR_STRING
-	 'LeaseObtained'       => 'L',                                     #time_t
-	 'LeaseExpires'        => 'L',                                     #time_t
+	 'LeaseObtained'       => $LQ,                                     #time_t
+	 'LeaseExpires'        => $LQ,                                     #time_t
 	];
 
 #my $st_MIB_IPADDRROW =
