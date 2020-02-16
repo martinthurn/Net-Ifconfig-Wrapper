@@ -108,13 +108,15 @@ my $RunCmd = sub($$)
              $Ifconfig{$CName}{$^O}{$OsName}{$OsVers}{'ifconfig'}          :
              $Ifconfig{$CName}{$^O}{'ifconfig'}).' 2>&1';
   
-  #print "\n=== RunCmd ===\n\$CName: $CName, \$Iface: $Iface, \$Logic: $Logic, \$Addr: $Addr, \$Mask: $Mask\n";
+  $DEBUG && print STDERR "\n=== RunCmd ===\n\$CName: $CName, \$Iface: $Iface, \$Logic: $Logic, \$Addr: $Addr, \$Mask: $Mask\n";
   
   $Cmd =~ s{%Iface%}{$Iface}gsex;
   $Cmd =~ s{%Logic%}{$Logic}gsex;
   $Cmd =~ s{%Addr%}{$Addr}gsex;
   $Cmd =~ s{%Mask%}{$Mask}gsex;
   
+  $DEBUG && print STDERR "Cmd is ==$Cmd==\n";
+
   my $saveLang = $ENV{'LANG'} || '';
   $ENV{'LANG'} = 'C';
   my @Output   = `$Cmd`;
@@ -209,6 +211,9 @@ my $LinuxList = sub($$$$)
         ||
         # German locale de_DE.UTF-8
         ($_ =~ m/\A([a-z0-9]+)(?:\:(\d+))?\s+Link\s+encap\:(?:Ethernet\s+Hardware\s+Adresse\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5}))?.*\n?\Z/io)
+        ||
+        # /sbin/ip on some linux systems:
+        ($_ =~ m/link\/ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})\s/io)
        )
       {
       $Iface = $1;
@@ -240,11 +245,21 @@ my $LinuxList = sub($$$$)
            ||
            # German locale de_DE.UTF-8
            ($_ =~ m/\A\s+inet\s+Adresse\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?Maske\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
+           ||
+           ($_ =~ m/\sinet\s+(\d{1,3}(?:\.\d{1,3}){3})\/(\d+)\s/io)
           )
       {
       my $sIP = $1;
       my $sNetmask = $2;
       $DEBUG && warn " DDD   matched 'netmask' line, sIP=$sIP, sNetmask=$sNetmask\n";
+      if ($sNetmask =~ m/\A\d+\z/)
+        {
+        # The netmask appeared as a slash/number at the end of the IP
+        # address; convert it to an IP "address" quad string:
+        use Net::Netmask;
+        my $block = new Net::Netmask($sIP, $sNetmask);
+        $sNetmask = $block->mask();
+        } # if
       $Info->{$Iface}{'inet'}{$sIP} = $sNetmask;
       $Inet2Logic->{$Iface}{$sIP} = $Logic;
       $Logic2Inet->{$Iface}{$Logic} = $sIP;
