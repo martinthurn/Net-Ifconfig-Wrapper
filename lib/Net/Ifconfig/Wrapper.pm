@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS @EXPORT_FAIL);
 
-$VERSION = 0.16;
+$VERSION = 0.17;
 
 require Exporter;
 
